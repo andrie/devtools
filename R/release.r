@@ -7,12 +7,20 @@
 #' \itemize{
 #'
 #'   \item Confirm that the package passes \code{R CMD check}
+#'   \item Ask if you've checked your code on win-builder
 #'   \item Confirm that news is up-to-date
 #'   \item Confirm that DESCRIPTION is ok
+#'   \item Ask if you've checked packages that depend on your package
 #'   \item Build the package
-#'   \item Upload the pakcage to CRAN
+#'   \item Upload the package to CRAN
 #'   \item Draft an email to the CRAN maintainer.
 #' }
+#'
+#' You should also read the CRAN repository policy at
+#' \url{http://cran.r-project.org/web/packages/policies.html} and make
+#' sure you're in line with them.  \code{release} tries to automate as much
+#' of them as possible, but they do change and you should be familiar with
+#' them.
 #'
 #' @param pkg package description, can be path or package name.  See
 #'   \code{\link{as.package}} for more information
@@ -26,17 +34,26 @@ release <- function(pkg = NULL, check = TRUE) {
 
   if (check) {
     check(pkg)
-    cat("Was package check successful?")
-    if(menu(c("Yes", "No")) == 2) return(invisible())    
+    if (yesno("Was package check successful?")) 
+      return(invisible())
   }
   
+  if (yesno("Have you checked on win-builder (with build_win)?"))
+    return(invisible())
+  
   try(print(show_news(pkg)))
-  cat("Is package news up-to-date?")
-  if(menu(c("Yes", "No")) == 2) return(invisible())
+  if (yesno("Is package news up-to-date?")) 
+    return(invisible())
   
   cat(readLines(file.path(pkg$path, "DESCRIPTION")), sep = "\n")
-  cat("Is DESCRIPTION up-to-date?")
-  if(menu(c("Yes", "No")) == 2) return(invisible())
+  if (yesno("Is DESCRIPTION up-to-date?")) 
+    return(invisible())
+
+  if (yesno("Have you checked packages that depend on this package?"))
+    return(invisible())
+  
+  if (yesno("Ready to upload?")) 
+    return(invisible())
   
   message("Building and uploading")
   built_path <- build(pkg, tempdir())
@@ -46,7 +63,7 @@ release <- function(pkg = NULL, check = TRUE) {
   
   message("Preparing email")
   msg <- paste(
-    "Dear Kurt,\n",
+    "Dear CRAN maintainers,\n",
     "\n",
     "I have just uploaded a new version of ", pkg$package, " to CRAN.\n",
     "\n",
@@ -57,3 +74,14 @@ release <- function(pkg = NULL, check = TRUE) {
   
   invisible(TRUE)
 }  
+
+yesno <- function(question) {
+  yeses <- c("Yes", "Definitely", "For sure", "Yup", "Yeah")
+  nos <- c("No way", "Not yet", "I forgot", "No", "Nope")
+  
+  cat(question)
+  qs <- c(sample(yeses, 1), sample(nos, 2))
+  rand <- sample(length(qs))
+  
+  menu(qs[rand]) != which(rand == 1)
+}

@@ -1,3 +1,204 @@
+* Add `--no-resave-data` to default build command. 
+
+devtools 0.7.1
+--------------
+
+* bump dependency to R 2.15
+
+* `load_code` now also looks for files ending in `.q` - this is not
+  recommended, but is needed for some older packages
+
+devtools 0.7
+------------
+
+INSTALLATION
+
+* `install_bitbucket` installs R packages on bitbucket.
+
+* `install` now uses `--with-keep.source` to make debugging a little easier.
+
+* All remote install functions give better error messages in the case of http
+  errors (Fixes #82).
+
+* `install` has new quick option to make package installation faster, by
+  sacrificing documentation, demos and multi-architecture binaries. (Fixes
+  #77)
+
+* `install_url`, `install_github` and `install_gitorious` gain a subdir
+  argument which makes it possible to install packages that are contained
+  within a sub-directory of a repository or compressed file. (Fixes #64)
+
+CHECKING
+
+* `with_debug` function temporarily sets env vars so that compilation is
+  performed with the appropriate debugging flags set. Contributed by Andrew
+  Redd.
+
+* `revdep`, `revdep_maintainers` and `revdep_check` for calculating reverse
+  dependencies, finding their maintainers and running `R CMD check`. 
+  (Fixes #78)
+
+* `check_cran` has received a massive overhaul: it now checks multiple
+  packages, installs dependencies (in user specified library), and parse check
+  output to extract errors and warnings
+
+* `check` uses new `--as-cran` option to make checking as close to CRAN as
+  possible (fixes #68)
+
+OTHER NEW FEATURES
+
+* devtools now uses options `devtools.path` to set the default path to use
+  with devmode, and `github.user` to set the default user when installing
+  packages from github.
+
+* if no package supplied, and no package has been worked with previously, all
+  functions now will try the working directory. (Fixes #87)
+
+* on windows, devtools now looks in the registry to find where Rtools is
+  installed, and does a better a job of locating gcc. (Contributed by Andrew
+  Redd)
+
+* `show_rd` passes `...` on to `Rd2txt` - this is useful if you're checking
+  how build time `\Sexpr`s are generated.
+
+* A suite of `with` functions that allow you to temporarily alter the
+  environment in which code is run: `in_dir`, `with_collate`, `with_locale`,
+  `with_options`, `with_path`, ... (Fixes #89)
+
+* `release` ask more questions and randomises correct answers so you really
+  need to read them (Fixes #79)
+
+* `source_gist` now accepts default url such as "https://gist.github.com/nnn"
+
+* New system path manipulation functions, `get_path`, `set_path`, `add_path`
+  and `on_path`, contributed by Andrew Redd.
+
+* If you're on windows, `devtools` now suppresses the unimportant warning from
+  CYGWIN about the dos style file paths
+
+BUG FIXES
+
+* `decompress` now uses target directory as defined in the function call
+  when expanding a compressed file. (Fixes #84)
+
+* `document` is always run in a C locale so that `NAMESPACE` sort order is
+  consistent across platforms.
+
+* `install` now quotes `libpath` and build path so paths with embedded spaces
+  work (Fixes #73 and #76)
+
+* `load_data` now also loads `.RData` files (Fixes #81)
+
+* `install` now has `args` argument to pass additional command line arguments
+  on to `R CMD install` (replaces `...` which didn't actually do anything).
+  (Fixes #69)
+
+* `load_code` does a better job of reconciling files in DESCRIPTION collate
+  with files that actually exist in the R directory. (Fixes #14)
+
+devtools 0.6
+------------
+
+NEW FEATURES
+
+* `test` function takes `filter` argument which allows you to restrict which
+  tests are to be run
+
+* `check` runs with example timings, as is done on CRAN. Run with new param
+  `cleanup = F` to access the timings. 
+
+* `missing_s3` function to help figure out if you've forgotten to export any
+  s3 methods
+
+* `check_cran` downloads and checks a CRAN package - this is useful to run as
+  part of the testing process of your package if you want to check the
+  dependencies of your package
+
+* `strict` mode for `run_examples` which runs each example in a clean
+  environment. This is much slower than the default (running in the current
+  environment), but ensures that each example works standalone. 
+
+* `dev_mode` now updates prompt to indicate that it's active (Thanks to Kohske
+  Takahashi)
+
+* new `source_url` function for sourcing script on a remote server via
+  protocols other than http (e.g. https or ftp). (Thanks to Kohske Takahashi)
+
+* new `source_gist` function to source R code stored in a github gist. (Thanks
+  to Kohske Takahashi)
+
+* `load_all` now also loads all package dependencies (including suggestions) -
+  this works around some bugs in the way that devtools attaches the
+  development environment into the search path in a way that fails to recreate
+  what happens normally during package loading.
+
+INSTALLATION
+
+* remote installation will ensure the configure file is executable.
+
+* all external package installation functions are vectorised so you can
+  install multiple packages at time
+
+* new `install_gitorious` function install packages in gitorious repos.
+
+* new `install_url` function for installing package from an arbitrary url
+
+* include `install_version` function from Jeremy Stephens for installing a
+  specific version of a CRAN package from the archive.
+
+BETTER WINDOWS BEHAVIOUR
+
+* better check for OS type (thanks to Brian Ripley)
+
+* better default paths for 64-bit R on windows (Fixes #35)
+
+* check to see if Rtools is already available before trying to mess with the
+  paths. (Fixes #55)
+
+BUG FIXES
+
+* if an error occurs when calling loading R files, the cache will be
+  automatically cleared so that all files are loaded again next time you try
+  (Fixes #55)
+
+* functions that run R now do so with `R_LIBS` set to the current
+  `.libPaths()` - this will ensure that checking uses the development library
+  if you are in development mode. `R_ENVIRON_USER` is set to an empty file to
+  avoid your existing settings overriding this.
+
+* `load_data` (called by `load_all`) will also load data defined in R files in
+  the data directory. (Fixes #45)
+
+* `dev_mode` performs some basic tests to make sure you're not setting your
+  development library to a directory that's not already an R library. (Fixes
+  #25)
+
+devtools 0.5.1
+--------------
+
+* Fix error in that was causing R commands to fail on windows.
+
+devtools 0.5
+--------------
+
+NEW FUNCTIONS
+
+* new `show_rd` function that will show the development version of a help
+  file.
+
+IMPROVEMENTS AND BUG FIXES
+
+* external R commands always run in locale `C`, because that's what the CRAN
+  severs do.
+
+* `clean_source` sources an R script into a fresh R environment, ensuring that
+  it can run independently of your current working environment. Optionally
+  (`vanilla = T`), it will source in a vanilla R environment which ignores all
+  local environment settings.
+
+* On windows, `devtools` will also add the path to `mingw` on startup. (Thanks
+  to pointer from Dave Lovell)
+
 devtools 0.4
 ------------
 

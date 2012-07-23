@@ -1,21 +1,27 @@
 Package: devtools
 Title: Tools to make developing R code easier
-Version: 0.4
+Version: 0.7.1
 Author: Hadley Wickham <h.wickham@gmail.com>
 Maintainer: Hadley Wickham <h.wickham@gmail.com>
 Description: Collection of package development tools
 Depends:
-    R (>= 2.13)
+    R (>= 2.15)
 Imports:
-    RCurl
+    httr,
+    RCurl,
+    utils,
+    tools,
+    memoise
 Suggests:
     testthat,
-    roxygen2
+    roxygen2,
+    BiocInstaller
 License: MIT
 Collate:
     'bash.r'
     'build.r'
     'check.r'
+    'check-cran.r'
     'common-mistakes.r'
     'devel-mode.r'
     'document.r'
@@ -35,8 +41,18 @@ Collate:
     'run-examples.r'
     'system.r'
     'test.r'
-    'utils.r'
     'vignettes.r'
-    'os.r'
     'zzz.r'
     'wd.r'
+    'source.r'
+    'decompress.r'
+    'install-github.r'
+    'install-url.r'
+    'install-version.r'
+    'install-gitorious.r'
+    'missing-s3.r'
+    'run-source.r'
+    'dependencies.r'
+    'with.r'
+    'install-bitbucket.r'
+    'path.r'

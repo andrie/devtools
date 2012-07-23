@@ -11,14 +11,18 @@
 #'   with the (lexicographically) first file.  This is useful if you have a 
 #'   lot of examples and don't want to rerun them every time when you fix a 
 #'   problem.
+#' @param strict if \code{TRUE}, the package is first installed, and then each
+#'   example is run in a clean R environment somewhat mimicking what 
+#'   \code{R CMD check} does.  Since this involves installing the package
+#'   you should probably be in \code{\link{dev_mode}}
 #' @keywords programming
 #' @export
-run_examples <- function(pkg = NULL, start = NULL) {
+run_examples <- function(pkg = NULL, start = NULL, strict = TRUE) {
   pkg <- as.package(pkg)
   document(pkg)
   
   path_man <- file.path(pkg$path, "man")
-  files <- dir(path_man, pattern = "\\.[Rr]d$", full = TRUE)
+  files <- dir(path_man, pattern = "\\.[Rr]d$", full.names = TRUE)
   names(files) <- basename(files)
   files <- sort(files)
   
@@ -28,7 +32,7 @@ run_examples <- function(pkg = NULL, start = NULL) {
       files <- files[- seq(1, start_pos - 1)]
     }
   }
-      
+  
   suppressWarnings(rd <- lapply(files, tools::parse_Rd))
   has_examples <- function(rd) {
     tags <- tools:::RdTags(rd)
@@ -36,14 +40,16 @@ run_examples <- function(pkg = NULL, start = NULL) {
   }
   rd <- Filter(has_examples, rd)
 
+  if (strict) install(pkg)
+
   message("Running ", length(rd), " examples in ", pkg$package)
   message(paste(rep("-", getOption("width"), collapse = "")))
   mapply(run_example, names(rd), rd, 
-    MoreArgs = list(parent.frame()))  
+    MoreArgs = list(env = parent.frame(), strict = strict, pkg = pkg))  
   invisible()
 }
 
-run_example <- function(name, rd, env = parent.frame()) {
+run_example <- function(name, rd, pkg, env = parent.frame(), strict = TRUE) {
   message("Checking ", name, "...")
   message(paste(rep("-", getOption("width"), collapse = "")))
   
@@ -53,8 +59,15 @@ run_example <- function(name, rd, env = parent.frame()) {
 
   # Use internal Rd2ex code which strips out \dontrun etc
   tools:::Rd2ex(rd, tmp)
-  source(tmp, echo = TRUE, keep.source = TRUE, max.deparse.length = Inf,
-    skip.echo = 6)
+  
+  if (strict) {
+    ex <- c(paste("library('", pkg$package, "')", sep = ""), readLines(tmp))
+    writeLines(ex, tmp)
+    clean_source(tmp)
+  } else {
+    source(tmp, echo = TRUE, keep.source = TRUE, max.deparse.length = Inf,
+      skip.echo = 6)    
+  }
   cat("\n\n")
 }
 

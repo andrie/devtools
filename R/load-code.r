@@ -14,22 +14,34 @@ load_code <- function(pkg = NULL, env = pkg_env(pkg)) {
   pkg <- as.package(pkg)
   path_r <- file.path(pkg$path, "R")
 
-  if (is.null(pkg$collate)) {
-    paths <- find_code(path_r)
-  } else {
-    paths <- file.path(path_r, parse_collate(pkg$collate))
-  }
-  exists <- vapply(paths, file.exists, logical(1))
-  if (any(!exists)) {
-    warning("Skipping missing files: ", 
-      paste(basename(paths[!exists]), collapse = ", "), call. = FALSE)
-    paths <- paths[exists]
+  r_files <- find_code(path_r)
+  if (!is.null(pkg$collate)) {
+    collate <- file.path(path_r, parse_collate(pkg$collate))
+    
+    missing <- setdiff(collate, r_files)
+    files <- function(x) paste(basename(x), collapse = ", ")
+    if (length(missing) > 0) {
+      message("Skipping missing files: ", files(missing))
+    }
+    
+    extra <- setdiff(r_files, collate)
+    if (length(extra) > 0) {
+      message("Adding files missing in collate: ", files(extra))
+    }
+    
+    r_files <- union(collate, r_files)
   }
   
-  paths <- changed_files(paths)
+  paths <- changed_files(r_files)
 
-  lapply(paths, sys.source, envir = env, chdir = TRUE, 
-    keep.source = TRUE)
+  tryCatch(
+    lapply(paths, sys.source, envir = env, chdir = TRUE, 
+      keep.source = TRUE), 
+    error = function(e) {
+      clear_cache()
+      stop(e)
+    }
+  )
   
   # Load .onLoad if it's defined
   if (exists(".onLoad", env, inherits = FALSE) && 
@@ -53,7 +65,7 @@ parse_collate <- function(string) {
 #' Find all R files in given directory.
 #' @keywords internal
 find_code <- function(path) {
-  code_paths <- dir(path, "\\.[Rr]$", full = TRUE)  
-  with_locale("C", sort(code_paths))
+  code_paths <- dir(path, "\\.[Rrq]$", full.names = TRUE)  
+  with_collate("C", sort(code_paths))
 }
 

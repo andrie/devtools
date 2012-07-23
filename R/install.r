@@ -1,4 +1,4 @@
-#' Install a package.
+#' Install a local development package.
 #'
 #' Uses \code{R CMD INSTALL} to install the package. Will also try to install
 #' dependencies of the package from CRAN, if they're not already installed.
@@ -10,16 +10,32 @@
 #'   \code{\link{as.package}} for more information
 #' @param reload if \code{TRUE} (the default), will automatically reload the 
 #'   package after installing.
+#' @param quick if \code{TRUE} skips docs, multiple-architectures,
+#'   and demos to make installation as fast as possible.
+#' @param args An optional character vector of additional command line
+#'   arguments to be passed to \code{R CMD install}.
 #' @export
-install <- function(pkg = NULL, reload = TRUE) {
+#' @family package installation
+#' @seealso \code{\link{with_debug}} to install packages with debugging flags
+#'   set.
+#' @importFrom utils install.packages
+install <- function(pkg = NULL, reload = TRUE, quick = FALSE, args = NULL) {
   pkg <- as.package(pkg)
   message("Installing ", pkg$package)
   install_deps(pkg)  
   
   built_path <- build(pkg, tempdir())
   on.exit(unlink(built_path))    
-
-  install.packages(built_path, repos = NULL, type = "source")
+  
+  opts <- c(
+    paste("--library=", shQuote(.libPaths()[1]), sep = ""),
+    "--with-keep.source")
+  if (quick) {
+    opts <- c(opts, "--no-docs", "--no-multiarch", "--no-demo")
+  }
+  opts <- paste(paste(opts, collapse = " "), paste(args, collapse = " "))
+  
+  R(paste("CMD INSTALL ", shQuote(built_path), " ", opts, sep = ""))
 
   if (reload) reload(pkg)
   invisible(TRUE)
@@ -42,43 +58,28 @@ install_deps <- function(pkg = NULL) {
   invisible(deps)
 }
 
-#' Attempts to install a package directly from github.
+#' Temporarily set debugging compilation flags.
 #'
-#' @param username Github username
-#' @param repo Repo name
-#' @param branch Desired branch - defaults to \code{"master"}
+#' @param code to execute.
+#' @param PKG_CFLAGS flags for compiling C code
+#' @param PKG_CXXFLAGS flags for compiling C++ code
+#' @param PKG_FFLAGS flags for compiling Fortran code.
+#' @param PKG_FCFLAGS flags for Fortran 9x code. 
 #' @export
-#' @importFrom RCurl getBinaryURL
 #' @examples
 #' \dontrun{
-#' install_github("roxygen")
+#' install("mypkg")
+#' with_debug(install("mypkg"))
 #' }
-install_github <- function(repo, username = "hadley", branch = "master") {
+with_debug <- function(code,
+                       PKG_CFLAGS   = "-UNDEBUG -Wall -pedantic -g -O0",
+                       PKG_CXXFLAGS = "-UNDEBUG -Wall -pedantic -g -O0", 
+                       PKG_FFLAGS   = "-g -O0", 
+                       PKG_FCFLAGS  = "-g -O0") {
+  flags <- c(
+    PKG_CFLAGS = PKG_CFLAGS, PKG_CXXFLAGS = PKG_CXXFLAGS,
+    PKG_FFLAGS = PKG_FFLAGS, PKG_FCFLAGS = PKG_FCFLAGS)
   
-  message("Installing ", repo, " from ", username)
-  name <- paste(username, "-", repo, sep = "")
-  url <- paste("https://github.com/", username, "/", repo, sep = "")
-
-  # Download and unzip repo zip
-  zip_url <- paste("https://nodeload.github.com/", username, "/", repo,
-    "/zipball/", branch, sep = "")
-  src <- file.path(tempdir(), paste(name, ".zip", sep = ""))
-  
-  content <- getBinaryURL(zip_url, .opts = list(
-    followlocation = TRUE, ssl.verifypeer = FALSE))
-  writeBin(content, src)
-  on.exit(unlink(src), add = TRUE)
-  
-  pkg_name <- basename(as.character(unzip(src, list = TRUE)$Name[1]))
-  out_path <- file.path(tempdir(), pkg_name)
-  unzip(src, exdir = tempdir())
-  on.exit(unlink(out_path), add = TRUE)
-  
-  # Check it's an R package
-  if (!file.exists(file.path(out_path, "DESCRIPTION"))) {
-    stop("Does not appear to be an R package", call. = FALSE)
-  }
-  
-  # Install
-  install(out_path)
+  with_env(flags, code)
 }
+

@@ -18,10 +18,10 @@ build <- function(pkg = NULL, path = NULL, binary = FALSE) {
   
   if (binary) {
     cmd <- paste("CMD INSTALL ", shQuote(pkg$path), " --build", sep = "")
-    ext <- if (os() == "win") "zip" else "tgz"
+    ext <- if (.Platform$OS.type == "windows") "zip" else "tgz"
   } else {
     cmd <- paste("CMD build ", shQuote(pkg$path), 
-      " --no-manual --no-vignettes", sep = "")
+      " --no-manual --no-vignettes --no-resave-data", sep = "")
     ext <- "tar.gz"
   }
   R(cmd, path)
@@ -35,13 +35,13 @@ build <- function(pkg = NULL, path = NULL, binary = FALSE) {
 #'
 #' Works by building source package, and then uploading to
 #' \url{http://win-builder.r-project.org/}.  Once building is complete you'll
-#' recieve a link to the built package in the email address listed in the 
+#' receive a link to the built package in the email address listed in the 
 #' maintainer field.  It usually takes around 30 minutes.
 #'
 #' @param pkg package description, can be path or package name.  See
 #'   \code{\link{as.package}} for more information
 #' @param version directory to upload to on the win-builder, controlling
-#'   which version of R is used to build the packge. Possible options are
+#'   which version of R is used to build the package. Possible options are
 #'   listed on \url{http://win-builder.r-project.org/}. Defaults to the 
 #'   released version of R.
 #' @importFrom RCurl ftpUpload
@@ -50,7 +50,7 @@ build <- function(pkg = NULL, path = NULL, binary = FALSE) {
 build_win <- function(pkg = NULL, version = "R-release") {
   pkg <- as.package(pkg)
   message("Building windows version of ", pkg$package, 
-    " with win-builder.org.\n  Check your email for link to package.")
+    " with win-builder.org.\nCheck your email for link to package.")
 
   built_path <- build(pkg, tempdir())
   on.exit(unlink(built_path))
